@@ -90,6 +90,7 @@ CVS (Crochet Validity Scrutinizer)
 >    
 >
 > -- STOLEN FROM MODULE 11
+> {-
 > run :: String -> IO ()
 > run fileName = do
 >   s <- readFile fileName
@@ -109,5 +110,5 @@ CVS (Crochet Validity Scrutinizer)
 >   case args of
 >     []     -> putStrLn "Please provide a file name."
 >     (fn:_) -> run fn
-
+-} 
 > 
