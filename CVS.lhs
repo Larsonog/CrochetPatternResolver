@@ -16,15 +16,15 @@ CVS (Crochet Validity Scrutinizer)
 >   deriving (Show)
 > 
 > data Part where 
->   Repeat    :: Part
->   Increase  :: Part
->   Decrease  :: Part 
->   Remaining :: Part
->   FlipChain :: Part -- flip chain 
->   Flip      :: Part -- flip the piece
+>   Increase    :: Int -> Part
+>   Decrease    :: Int -> Part 
+>   Remaining   :: Int -> Part
+>   FlipChain   :: Part -- flip chain 
+>   Flip        :: Part -- flip the piece
+>   PullThrough :: Part 
 >   deriving (Show)
 > 
-> data Row where 
+> data Row where -- environment 
 >   Flat      :: Stitch -> Part -> Part -> Row -- no increases, decrease, or anything crazy
 >   Repeater  :: Part -> Stitch -> Part ->  Part-> Row 
 >   TwoStitch :: Stitch -> Stitch -> Part -> Part -> Row -- always have t 
@@ -51,11 +51,15 @@ CVS (Crochet Validity Scrutinizer)
 > showPatErr (NoTurnChain)  = "There is no turning chain"
 > showPatErr (NoPull)       = "There was no pull through at the end"
 >
+> -- important variables to keep track of 
+> width = 0   -- comes from the first row chain amount
+> counter = 0 -- need to count how many stitches in row for 
+> numStitches = 0 
 > -- Parsers 
 > lexer :: TokenParser u
 > lexer = makeTokenParser $
 >   emptyDef
->   { reservedNames    = ["row:" ],     
+>   { reservedNames   = ["row:" ],     
 >     reservedOpNames = ["ss","sc", "dc", "tc", "sp", "ch", "repeat", "inc", "dec", "remaining", "fc", "fl" ]}  
 > 
 > integer :: Parser Integer
@@ -72,26 +76,35 @@ CVS (Crochet Validity Scrutinizer)
 > reservedOp = getReservedOp lexer
 > 
 > checkSpace :: Stitch -> Bool 
-> checkSpace (Space) = True -- if there is a space this BAD  
-> checkSpace _ = False      -- no space at the beginning is GOOD 
+> checkSpace (Space _) = True -- if there is a space this BAD  
+> checkSpace _         = False-- no space at the beginning is GOOD 
 > 
 > checkTreble :: Stitch -> Stitch -> Bool 
-> checkTreble (TrebleCrochet SlipStitch) = True  
-> checkTreble (TrebleCrochet SingleCrochet) = True
-> checkTreble (SlipStitch TrebleCrochet ) = True
-> checkTreble (SingleCrochet TrebleCrochet ) = True
+> checkTreble (TrebleCrochet _) (SlipStitch    _)    = True  
+> checkTreble (TrebleCrochet _) (SingleCrochet _)  = True
+> checkTreble (SlipStitch    _) (TrebleCrochet _)  = True
+> checkTreble (SingleCrochet _) (TrebleCrochet _)  = True
 > checkTreble _ _ = False 
+> 
+> checkFlip :: Part -> Bool
+> checkFlip Flip = True 
+> checkFlip _ = False
+> 
+> checkFC :: Part -> Bool 
+> checkFC (FlipChain) = True 
+> checkFC _ = False 
+> 
+> checkPullThrough :: Part -> Bool 
+> checkPullThrough (PullThrough) = True 
+> checkPullThrough _ = False 
 > 
 > interpRow :: Row -> Either PatternError Bool  
 > interpRow (Flat s p1 p2) = undefined
-> interpRow (TwoStitch s1 s2 p1 p2) = 
->     if s1 || s2 == tc then (if s2 || s1 == ss || sc then False else True) else True
->     -- if the first stitch or the second stitch is equal to a treble crochet then check to see if either the first stitch or the second stitch is a single crochet or a slip stitch 
->    
->
+> interpRow (TwoStitch s1 s2 p1 p2) = undefined 
+>  
+
 > -- STOLEN FROM MODULE 11
-> {-
-> run :: String -> IO ()
+> {- run :: String -> IO ()
 > run fileName = do
 >   s <- readFile fileName
 >   case parse impParser s of
@@ -110,5 +123,5 @@ CVS (Crochet Validity Scrutinizer)
 >   case args of
 >     []     -> putStrLn "Please provide a file name."
 >     (fn:_) -> run fn
--} 
-> 
+> -} 
+ 
