@@ -16,14 +16,25 @@ CVS (Crochet Validity Scrutinizer)
 >   deriving (Show)
 > 
 > data Part where 
->   Increase    :: Int -> Part
->   Decrease    :: Int -> Part 
+>   Increase    :: Stitch -> Int -> Part
+>   Decrease    :: Stitch -> Int -> Part 
 >   Remaining   :: Int -> Part
+> --Maybe don't need flipchain or flip because it is guaranteed at the end of the rows. 
 >   FlipChain   :: Part -- flip chain 
 >   Flip        :: Part -- flip the piece
 >   PullThrough :: Part 
+> --add stitches here.
 >   deriving (Show)
 > 
+
+> --Maybe take a page from the way that IMP defined parts of ADTs to be more general.
+
+> -- Change the way that dec is defined to Num(Tog(stitch)) and same for inc.
+
+> --Another comprehensive ADT or editing Part to have stitches in it. is needed for parts and stitches together so that row can be defined as a list of the parts.
+
+> --change row so that it is just a list of parts instead of individual cases.
+
 > data Row where -- environment 
 >   Flat      :: Stitch -> Part -> Part -> Row -- no increases, decrease, or anything crazy
 >   Repeater  :: Part -> Stitch -> Part ->  Part-> Row 
@@ -55,6 +66,7 @@ CVS (Crochet Validity Scrutinizer)
 > width = 0   -- comes from the first row chain amount
 > counter = 0 -- need to count how many stitches in row for 
 > numStitches = 0 
+> -- similarity to arith interpreter, so need to create an environment. take in the width and keep track of it through the environment
 > -- Parsers 
 > lexer :: TokenParser u
 > lexer = makeTokenParser $
