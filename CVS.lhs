@@ -6,12 +6,12 @@ CVS (Crochet Validity Scrutinizer)
 
 
 > data Stitch where 
->   SlipStitch    :: Int -> Stitch -- slip stitch
->   SingleCrochet :: Int -> Stitch -- single crochet
->   DoubleCrochet :: Int -> Stitch -- double crochet 
->   TrebleCrochet :: Int -> Stitch -- treble corchet 
->   Space         :: Int -> Stitch -- space
->   Chain         :: Int -> Stitch -- chain 
+>   SlipStitch    :: Integer -> Stitch -- slip stitch
+>   SingleCrochet :: Integer -> Stitch -- single crochet
+>   DoubleCrochet :: Integer -> Stitch -- double crochet 
+>   TrebleCrochet :: Integer -> Stitch -- treble corchet 
+>   Space         :: Integer -> Stitch -- space
+>   Chain         :: Integer -> Stitch -- chain 
 >   deriving (Show)
 > 
 > data Part where 
@@ -21,9 +21,9 @@ CVS (Crochet Validity Scrutinizer)
 >   TC          :: Stitch -> Part
 >   SP          :: Stitch -> Part
 >   CH          :: Stitch -> Part
->   Increase    :: Int -> Stitch -> Part --CHANGED DEFINITION TO INC NUM(STITCH) -> OP X Y
->   Decrease    :: Int -> Stitch -> Part --wiggliness on the definition
->   Remaining   :: Int -> Part
+>   Increase    :: Integer -> Stitch -> Part --CHANGED DEFINITION TO INC NUM(STITCH) -> OP X Y
+>   Decrease    :: Integer -> Stitch -> Part --wiggliness on the definition
+>   Remaining   :: Integer -> Part
 >   FlipChain   :: Part -- flip chain 
 >   Flip        :: Part -- flip the piece
 >   PullThrough :: Part 
@@ -85,12 +85,25 @@ CVS (Crochet Validity Scrutinizer)
 > parseRow :: Parser Row
 > parseRow = parsePart `sepBy` (reservedOp ",")
 >
->
+> parseStitchAtom :: Parser Stitch
+> parseStitchAtom =
+>       SlipStitch <$> integer
+>   <|> SingleCrochet <$> integer
+>   <|> DoubleCrochet <$> integer
+>   <|> TrebleCrochet <$> integer
+>   <|> Chain <$> integer
+>   <|> Space <$> integer
+>   <|> parens parseStitch
+> 
 > parsePartAtom :: Parser Part
 > parsePartAtom = SS <$ reservedOp "ss"
 >               <|> SC <$ reservedOp "sc"
 >               <|> DC <$ reservedOp "dc"
 >
+
+> parseStitch :: Parser Stitch
+> parseStitch = undefined
+
 > parsePart :: Parser Part
 > parsePart = buildExpressionParser table parsePartAtom
 >   where
