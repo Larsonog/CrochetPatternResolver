@@ -42,6 +42,7 @@ CVS (Crochet Validity Scrutinizer)
 >   BegSpace    :: PatternError 
 >   NoTurnChain :: PatternError 
 >   NoPull      :: PatternError  
+>   TrebleError :: PatternError
 >   deriving (Show)
 > 
 > showPatErr :: PatternError -> String 
@@ -107,25 +108,39 @@ CVS (Crochet Validity Scrutinizer)
 > checkSpace (Space _) = True -- if there is a space this BAD  
 > checkSpace _         = False-- no space at the beginning is GOOD 
 > 
-> checkTreble :: Stitch -> Stitch -> Bool 
-> checkTreble (TrebleCrochet _) (SlipStitch    _)  = True  
-> checkTreble (TrebleCrochet _) (SingleCrochet _)  = True
-> checkTreble (SlipStitch    _) (TrebleCrochet _)  = True
-> checkTreble (SingleCrochet _) (TrebleCrochet _)  = True
+> checkTreble :: Part -> Part -> Bool 
+> checkTreble (S (TrebleCrochet _)) (S (SlipStitch _))  = True  
+> checkTreble (S (TrebleCrochet _)) (S (SingleCrochet _))  = True
+> checkTreble (S (SlipStitch _)) (S (TrebleCrochet _))  = True
+> checkTreble (S (SingleCrochet _)) (S (TrebleCrochet _))  = True
 > checkTreble _ _ = False 
 > 
 > checkFlip :: Part -> Bool
 > checkFlip Flip = True 
 > checkFlip _ = False
 > 
+
+> parse2 :: Parser Part
+> parse2 = whiteSpace *> parsePart <* eof
+
 > checkFC :: Part -> Bool 
-> checkFC (FlipChain) = True 
+> checkFC FlipChain = True 
 > checkFC _ = False 
 > 
 > checkPullThrough :: Part -> Bool 
-> checkPullThrough (PullThrough) = True 
+> checkPullThrough PullThrough = True 
 > checkPullThrough _ = False 
 > 
-> interpRow :: Row -> Either PatternError Bool  
-> interpRow _ = undefined
+> data Progress where
+>   Working :: [Part] -> Progress
+>   Done :: Bool -> Progress
+>   Error :: PatternError -> Progress
+>
+> step :: Progress -> Progress
+> step (Working []) = Done True
+> step (Done bool) = Done bool
+> step (Working (x:y: row)) = if checkTreble x y then Error TrebleError else Working (x:y:row)
+> step (Error e) = Error e
+> step _ = Error ZeroWidth
 >  
+
