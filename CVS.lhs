@@ -4,7 +4,7 @@
 CVS (Crochet Validity Scrutinizer)
 ==================================
 
-> 
+
 > data Stitch where 
 >   SlipStitch    :: Int -> Stitch -- slip stitch
 >   SingleCrochet :: Int -> Stitch -- single crochet
@@ -42,9 +42,9 @@ CVS (Crochet Validity Scrutinizer)
 > 
 > data PatternError where 
 >   ZeroWidth   :: PatternError
->   SpaceError  :: Int -> PatternError
->   DecError    :: Int -> PatternError 
->   IncError    :: Int -> Int -> PatternError -- old width, new width, error 
+>   SpaceError  :: String -> PatternError
+>   DecError    :: String -> PatternError 
+>   IncError    :: String -> String -> PatternError -- old width, new width, error 
 >   FlipEarly   :: PatternError 
 >   BegSpace    :: PatternError 
 >   NoTurnChain :: PatternError 
