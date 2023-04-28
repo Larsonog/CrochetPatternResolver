@@ -1,10 +1,9 @@
+> {-# LANGUAGE GADTs #-}
 > import Parsing2
   
 CVS (Crochet Validity Scrutinizer)
 ==================================
 
-
-> {-# LANGUAGE GADTs #-}
 > 
 > data Stitch where 
 >   SlipStitch    :: Int -> Stitch -- slip stitch
