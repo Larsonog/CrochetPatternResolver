@@ -15,12 +15,7 @@ CVS (Crochet Validity Scrutinizer)
 >   deriving (Show)
 > 
 > data Part where 
->   SS          :: Stitch -> Part
->   SC          :: Stitch -> Part
->   DC          :: Stitch -> Part
->   TC          :: Stitch -> Part
->   SP          :: Stitch -> Part
->   CH          :: Stitch -> Part
+>   S         :: Stitch -> Part
 >   Increase    :: Integer -> Stitch -> Part --CHANGED DEFINITION TO INC NUM(STITCH) -> OP X Y
 >   Decrease    :: Integer -> Stitch -> Part --wiggliness on the definition
 >   Remaining   :: Integer -> Part
@@ -66,7 +61,7 @@ CVS (Crochet Validity Scrutinizer)
 > lexer = makeTokenParser $
 >   emptyDef
 >   { reservedNames   = ["row:" ],     
->     reservedOpNames = ["ss","sc", "dc", "tc", "sp", "ch", "repeat", "inc", "dec", "remaining", "fc", "fl", "," ]}  
+>     reservedOpNames = ["ss","sc", "dc", "tc", "sp", "ch", "repeat", "inc", "tog", "remaining", "fc", "fl", "," ]}  
 > 
 > integer :: Parser Integer
 > integer = getInteger lexer
@@ -83,39 +78,23 @@ CVS (Crochet Validity Scrutinizer)
 > parens = getParens lexer
 > 
 > parseRow :: Parser Row
-> parseRow = parsePart `sepBy` (reservedOp ",")
+> parseRow = parsePart `sepBy` reservedOp ","
 >
-> parseStitchAtom :: Parser Stitch
-> parseStitchAtom =
->       SlipStitch <$> integer
->   <|> SingleCrochet <$> integer
->   <|> DoubleCrochet <$> integer
->   <|> TrebleCrochet <$> integer
->   <|> Chain <$> integer
->   <|> Space <$> integer
+> parseStitch:: Parser Stitch
+> parseStitch =
+>       SlipStitch <$> (integer <* reservedOp "ss")
+>   <|> SingleCrochet <$> (integer <* reservedOp "dc")
+>   <|> DoubleCrochet <$> (integer <* reservedOp "dc")
+>   <|> TrebleCrochet <$> (integer <* reservedOp "tc")
+>   <|> Chain <$> (integer <* reservedOp "ch")
+>   <|> Space <$> (integer <* reservedOp "sp")
 >   <|> parens parseStitch
 > 
-> parsePartAtom :: Parser Part
-> parsePartAtom = SS <$ reservedOp "ss"
->               <|> SC <$ reservedOp "sc"
->               <|> DC <$ reservedOp "dc"
->
-
-> parseStitch :: Parser Stitch
-> parseStitch = undefined
-
 > parsePart :: Parser Part
-> parsePart = buildExpressionParser table parsePartAtom
->   where
->     table = [ [ Infix (Increase <$ reservedOp "inc") AssocLeft
->               , Infix (Decrease <$ reservedOp "dec") AssocLeft   ]
->               ,[ Infix (SC <$ reservedOp "sc") AssocNone
->               ,  Infix (DC <$ reservedOp "dc") AssocNone
->               ,  Infix (TC <$ reservedOp "tc") AssocNone
->               ,  Infix (SS <$ reservedOp "ss") AssocNone
->               ,  Infix (CH <$ reservedOp "ch") AssocNone
->               ,  Infix (SP <$ reservedOp "sp") AssocNone
->               ]]
+> parsePart =
+>       S <$> parseStitch
+>   <|> Increase <$> integer <*> parseStitch <* reservedOp "inc" 
+>   <|> Decrease <$> integer <*> parseStitch <* reservedOp "tog"
 
 
 > -- does this pull from our lexer?
@@ -157,7 +136,7 @@ CVS (Crochet Validity Scrutinizer)
 >   s <- readFile fileName
 >   case parse impParser s of
 >     Left err -> print err
->     Right p  ->
+>     Right p  -> j76
 >       case checkProg M.empty p of
 >         Left tyErr -> putStrLn (showTyError tyErr)
 >         Right _    -> do
