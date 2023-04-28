@@ -1,6 +1,5 @@
 > {-# LANGUAGE GADTs #-}
 > import Parsing2
-  import Text.Parsec (ParseError)
   
 CVS (Crochet Validity Scrutinizer)
 ==================================
@@ -22,7 +21,7 @@ CVS (Crochet Validity Scrutinizer)
 >   TC          :: Stitch -> Part
 >   SP          :: Stitch -> Part
 >   CH          :: Stitch -> Part
->   Increase    :: Int -> Stitch -> Part
+>   Increase    :: Int -> Stitch -> Part --CHANGED DEFINITION TO INC NUM(STITCH) -> OP X Y
 >   Decrease    :: Int -> Stitch -> Part --wiggliness on the definition
 >   Remaining   :: Int -> Part
 >   FlipChain   :: Part -- flip chain 
@@ -72,7 +71,8 @@ CVS (Crochet Validity Scrutinizer)
 > integer :: Parser Integer
 > integer = getInteger lexer
 >
-> -- parseProg :: Parser Prog
+> --Change this to work on Row
+> -- parseProg :: Parser Prog 
 > -- parseProg = parseStmt `sepBy` (reservedOp ";") YORGEY QUESTION
 >
 >
@@ -82,13 +82,20 @@ CVS (Crochet Validity Scrutinizer)
 > parens :: Parser a -> Parser a
 > parens = getParens lexer
 > 
-> parseRowAtom :: Parser Row
-> parseRowAtom = (Int <|> Part) <|> parens parseRow
->
 > parseRow :: Parser Row
-> parseRow = buildExpressionParser table parseRowAtom
+> parseRow = parsePart `sepBy` (reservedOp ",")
+>
+>
+> parsePartAtom :: Parser Part
+> parsePartAtom = SS <$ reservedOp "ss"
+>               <|> SC <$ reservedOp "sc"
+>               <|> DC <$ reservedOp "dc"
+>
+> parsePart :: Parser Part
+> parsePart = buildExpressionParser table parsePartAtom
 >   where
->     table = [ []
+>     table = [ [ Infix (Increase <$ reservedOp "inc") AssocLeft
+>               , Infix (Decrease <$ reservedOp "dec") AssocLeft   ]
 >               ,[ Infix (SC <$ reservedOp "sc") AssocNone
 >               ,  Infix (DC <$ reservedOp "dc") AssocNone
 >               ,  Infix (TC <$ reservedOp "tc") AssocNone
