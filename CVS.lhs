@@ -61,14 +61,10 @@ CVS (Crochet Validity Scrutinizer)
 > lexer = makeTokenParser $
 >   emptyDef
 >   { reservedNames   = ["row:" ],     
->     reservedOpNames = ["ss","sc", "dc", "tc", "sp", "ch", "repeat", "inc", "tog", "remaining", "fc", "fl", "," ]}  
+>     reservedOpNames = ["ss","sc", "dc", "tc", "sp", "ch", "repeat", "inc", "tog", "remaining", "fc", "fl", ",", "pt"]}  
 > 
 > integer :: Parser Integer
 > integer = getInteger lexer
->
-> --Change this to work on Row
-> -- parseProg :: Parser Prog 
-> -- parseProg = parseStmt `sepBy` (reservedOp ";") YORGEY QUESTION
 >
 >
 > whiteSpace :: Parser ()
@@ -95,6 +91,10 @@ CVS (Crochet Validity Scrutinizer)
 >       S <$> parseStitch
 >   <|> Increase <$> integer <*> parseStitch <* reservedOp "inc" 
 >   <|> Decrease <$> integer <*> parseStitch <* reservedOp "tog"
+>   <|> Remaining <$> integer <* reservedOp "remaining"
+>   <|> FlipChain <$ reservedOp "fc"
+>   <|> Flip <$ reservedOp "fl"
+>   <|> PullThrough <$ reservedOp "pt"
 
 
 > -- does this pull from our lexer?
@@ -129,26 +129,3 @@ CVS (Crochet Validity Scrutinizer)
 > interpRow :: Row -> Either PatternError Bool  
 > interpRow _ = undefined
 >  
-
-> -- STOLEN FROM MODULE 11
-> {- run :: String -> IO ()
-> run fileName = do
->   s <- readFile fileName
->   case parse impParser s of
->     Left err -> print err
->     Right p  -> j76
->       case checkProg M.empty p of
->         Left tyErr -> putStrLn (showTyError tyErr)
->         Right _    -> do
->           inp <- getContents
->           let es = interpProg p (initWorld inp)
->           putStr $ formatWorld es
->
-> main :: IO ()
-> main = do
->   args <- getArgs
->   case args of
->     []     -> putStrLn "Please provide a file name."
->     (fn:_) -> run fn
-> -} 
- 
