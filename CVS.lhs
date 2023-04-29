@@ -54,6 +54,7 @@ CVS (Crochet Validity Scrutinizer)
 > showPatErr BegSpace       = "Can't start a row with a space"
 > showPatErr NoTurnChain    = "There is no turning chain"
 > showPatErr NoPull         = "There was no pull through at the end"
+> showPatErr _              = "Something may have failed in the program."
 >
 > -- important variables to keep track of 
 > -- similarity to arith interpreter, so need to create an environment. take in the width and keep track of it through the environment
@@ -144,3 +145,15 @@ CVS (Crochet Validity Scrutinizer)
 > step _ = Error ZeroWidth
 >  
 
+> steps :: Progress -> Progress
+> steps (Working parts) = step (Working parts)
+> steps (Done bool) = Done bool
+> steps _ = Error ZeroWidth
+
+> execute :: [Part] -> Progress
+> execute parts = 
+>    case step(Working parts) of 
+>        Working [] -> Done True
+>        Working parts' -> execute parts'
+>        Done bool -> Done bool 
+>        Error e -> Error e
