@@ -12,7 +12,7 @@ CVS (Crochet Validity Scrutinizer)
 >   TrebleCrochet :: Integer -> Stitch -- treble corchet 
 >   Space         :: Integer -> Stitch -- space
 >   Chain         :: Integer -> Stitch -- chain 
->   deriving (Show)
+>   deriving (Show, Eq)
 > 
 > data Part where 
 >   S         :: Stitch -> Part
@@ -23,7 +23,7 @@ CVS (Crochet Validity Scrutinizer)
 >   Flip        :: Part -- flip the piece
 >   PullThrough :: Part 
 > --add stitches here.
->   deriving (Show)
+>   deriving (Show, Eq)
 > 
 
 > --Maybe take a page from the way that IMP defined parts of ADTs to be more general.
@@ -35,7 +35,7 @@ CVS (Crochet Validity Scrutinizer)
 > type Row = [Part]
 > data PatternError where 
 >   ZeroWidth   :: PatternError
->   SpaceError  :: String -> PatternError
+>   SpaceError  :: PatternError
 >   DecError    :: String -> PatternError 
 >   IncError    :: String -> String -> PatternError -- old width, new width, error 
 >   FlipEarly   :: PatternError 
@@ -48,7 +48,7 @@ CVS (Crochet Validity Scrutinizer)
 > 
 > showPatErr :: PatternError -> String 
 > showPatErr ZeroWidth      = "The Width is Zero"
-> showPatErr (SpaceError x) = "There are too many spaces in this row, there are : " ++ x
+> showPatErr (SpaceError) = "There are too many spaces in this row, there are over 5 consecutively"
 > showPatErr (DecError x)   = "Too many stitches have been combined, you tried to combine: " ++ x
 > showPatErr (IncError x y) = "The new width is : " ++ y ++ "which is double or more than the old width, which is: " ++ x
 > showPatErr FlipEarly      = "Flipped before end of row"
@@ -107,10 +107,7 @@ CVS (Crochet Validity Scrutinizer)
 > reserved   = getReserved lexer
 > reservedOp = getReservedOp lexer
 > 
-> checkSpace :: Stitch -> Bool 
-> checkSpace (Space _) = True -- if there is a space this BAD  
-> checkSpace _         = False-- no space at the beginning is GOOD 
-> 
+
 > checkTreble :: Part -> Part -> Bool 
 > checkTreble (S (TrebleCrochet _)) (S (SlipStitch _))  = True  
 > checkTreble (S (TrebleCrochet _)) (S (SingleCrochet _))  = True
@@ -122,7 +119,10 @@ CVS (Crochet Validity Scrutinizer)
 > checkFlip Flip = True 
 > checkFlip _ = False
 > 
-
+> checkSpace :: Part-> Bool
+> checkSpace (S (Space 5))= True
+> checkSpace _ = False
+>
 > parse2 :: Parser Part
 > parse2 = whiteSpace *> parsePart <* eof
 
@@ -134,20 +134,31 @@ CVS (Crochet Validity Scrutinizer)
 > checkPullThrough PullThrough = True 
 > checkPullThrough _ = False 
 > 
+> checkFlipChain :: Part -> [Part] -> Bool
+> checkFlipChain FlipChain (x :parts) = if FlipChain == x then True else checkFlipChain FlipChain parts
+> checkFlipChain _ _ = False
+> 
+> checkBegSpace :: Part -> [Part] -> Bool
+> checkBegSpace (S(Space y ))(x: parts) = (S (Space y)) == x
+> checkBegSpace _ _ = False 
+>
 > data Progress where
 >   Working :: [Part] -> Progress
 >   Done :: Bool -> Progress
 >   Error :: PatternError -> String -> Progress
 >
-
 > -- Error ProgFail just accounts for the fact that the pattern may be vaild but something went wrong that isn't the users fault.
 
 > step :: Progress -> Progress
 > step (Working []) = Done True
 > step (Done bool) = Done bool
-> step (Working (x:y: row)) = if checkTreble x y then Error (showPatErr TrebleError) else Working (y:row)
-> step (Error e _) = Error e (showPatErr e_)
-> step _ = Error _ (showPatErr ProgFail)
+> step (Working (x:y: row)) = if checkTreble x y then Error TrebleError (showPatErr TrebleError) else Working (y:row)
+> step (Working (x: row)) = if checkSpace x then Error SpaceError (showPatErr SpaceError) else Working (x: row)
+> step (Working (row)) = if checkFlipChain FlipChain row then Error NoTurnChain (showPatErr NoTurnChain) else Working (row)
+> step (Working (row)) = if checkBegSpace (S(Space 1)) row then Error BegSpace (showPatErr BegSpace) else Working (row)
+> -- Need to change the S Space of CheckBegSpace because it doesn't catch all cases currently.
+> step (Error e _) = Error e (showPatErr e)
+> step _ = Error ProgFail (showPatErr ProgFail)
 >  
 
 > steps :: Progress -> Progress
