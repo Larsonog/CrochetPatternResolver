@@ -162,3 +162,11 @@ CVS (Crochet Validity Scrutinizer)
 >        Working parts' -> execute parts'
 >        Done bool -> Done bool 
 >        Error e -> Error e
+> 
+> run :: [Part] -> Maybe Bool 
+> run parts = 
+>   case execute parts of 
+>     Done True -> Just True 
+>     Done False -> Just False
+>     Error _   -> Nothing 
+>     Working _ -> Nothing 
