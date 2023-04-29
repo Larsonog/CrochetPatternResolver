@@ -43,6 +43,7 @@ CVS (Crochet Validity Scrutinizer)
 >   NoTurnChain :: PatternError 
 >   NoPull      :: PatternError  
 >   TrebleError :: PatternError
+>   ProgFail    :: PatternError
 >   deriving (Show)
 > 
 > showPatErr :: PatternError -> String 
@@ -54,7 +55,8 @@ CVS (Crochet Validity Scrutinizer)
 > showPatErr BegSpace       = "Can't start a row with a space"
 > showPatErr NoTurnChain    = "There is no turning chain"
 > showPatErr NoPull         = "There was no pull through at the end"
-> showPatErr _              = "Something may have failed in the program."
+> showPatErr ProgFail       = "Something went wrong within the program. Dunno about your pattern! Sorry!"
+> showPatErr _              = "Uh I don't know what to do with this error, haven't accounted for it."
 >
 > -- important variables to keep track of 
 > -- similarity to arith interpreter, so need to create an environment. take in the width and keep track of it through the environment
@@ -137,18 +139,21 @@ CVS (Crochet Validity Scrutinizer)
 >   Done :: Bool -> Progress
 >   Error :: PatternError -> Progress
 >
+
+> -- Error ProgFail just accounts for the fact that the pattern may be vaild but something went wrong that isn't the users fault.
+
 > step :: Progress -> Progress
 > step (Working []) = Done True
 > step (Done bool) = Done bool
 > step (Working (x:y: row)) = if checkTreble x y then Error TrebleError else Working (x:y:row)
 > step (Error e) = Error e
-> step _ = Error ZeroWidth
+> step _ = Error ProgFail
 >  
 
 > steps :: Progress -> Progress
 > steps (Working parts) = step (Working parts)
 > steps (Done bool) = Done bool
-> steps _ = Error ZeroWidth
+> steps _ = Error ProgFail
 
 > execute :: [Part] -> Progress
 > execute parts = 
