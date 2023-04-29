@@ -137,7 +137,7 @@ CVS (Crochet Validity Scrutinizer)
 > data Progress where
 >   Working :: [Part] -> Progress
 >   Done :: Bool -> Progress
->   Error :: PatternError -> Progress
+>   Error :: PatternError -> String -> Progress
 >
 
 > -- Error ProgFail just accounts for the fact that the pattern may be vaild but something went wrong that isn't the users fault.
@@ -145,15 +145,15 @@ CVS (Crochet Validity Scrutinizer)
 > step :: Progress -> Progress
 > step (Working []) = Done True
 > step (Done bool) = Done bool
-> step (Working (x:y: row)) = if checkTreble x y then Error TrebleError else Working (x:y:row)
-> step (Error e) = Error e
-> step _ = Error ProgFail
+> step (Working (x:y: row)) = if checkTreble x y then Error (showPatErr TrebleError) else Working (y:row)
+> step (Error e _) = Error e (showPatErr e_)
+> step _ = Error _ (showPatErr ProgFail)
 >  
 
 > steps :: Progress -> Progress
 > steps (Working parts) = step (Working parts)
 > steps (Done bool) = Done bool
-> steps _ = Error ProgFail
+> steps _ = Error ProgFail (showPatErr ProgFail)
 
 > execute :: [Part] -> Progress
 > execute parts = 
@@ -161,12 +161,12 @@ CVS (Crochet Validity Scrutinizer)
 >        Working [] -> Done True
 >        Working parts' -> execute parts'
 >        Done bool -> Done bool 
->        Error e -> Error e
+>        Error e _ -> Error e (showPatErr e)
 > 
-> run :: [Part] -> Maybe Bool 
+> run :: [Part] -> Either String Bool 
 > run parts = 
 >   case execute parts of 
->     Done True -> Just True 
->     Done False -> Just False
->     Error _   -> Nothing 
->     Working _ -> Nothing 
+>     Done True -> Right True 
+>     --Done False -> Just False -- we probably don't need it 
+>     Error e _  -> Left (showPatErr e)   -- the cause of our problems
+>     Working _ -> Right (False)
