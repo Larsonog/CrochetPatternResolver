@@ -143,18 +143,18 @@ CVS (Crochet Validity Scrutinizer)
 > checkBegSpace (S(Space y ))(x: parts) = (S (Space y)) == x
 > checkBegSpace _ _ = False 
 >
-> checkInc :: Integer -> Part -> Bool
-> checkInc y (S(SingleCrochet _)) = if y>2 then True else False
-> checkInc y (S(DoubleCrochet _)) = if y>2 then True else False
-> checkInc y (S(TrebleCrochet _)) = if y>2 then True else False
-> checkInc y (S(SlipStitch    _)) = if y>2 then True else False
-> checkInc _ _ = False
+> checkInc :: Part -> Bool
+> checkInc (Increase y (SingleCrochet _)) = if y>2 then True else False
+> checkInc (Increase y (DoubleCrochet _)) = if y>2 then True else False
+> checkInc (Increase y (TrebleCrochet _)) = if y>2 then True else False
+> checkInc (Increase y (SlipStitch    _)) = if y>2 then True else False
+> checkInc  _ = False
 >
 > checkDec :: Part -> Bool
-> checkDec  (S(SingleCrochet y)) = if y>2 then True else False
-> checkDec  (S(DoubleCrochet y)) = if y>2 then True else False
-> checkDec  (S(TrebleCrochet y)) = if y>2 then True else False
-> checkDec  (S(SlipStitch    y)) = if y>2 then True else False
+> checkDec (Decrease y (SingleCrochet _)) = if y>2 then True else False
+> checkDec (Decrease y (DoubleCrochet _)) = if y>2 then True else False
+> checkDec (Decrease y (TrebleCrochet _)) = if y>2 then True else False
+> checkDec (Decrease y (SlipStitch    _)) = if y>2 then True else False
 > checkDec  _ = False
 >
 > data Progress where
