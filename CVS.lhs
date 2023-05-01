@@ -36,8 +36,8 @@ CVS (Crochet Validity Scrutinizer)
 > data PatternError where 
 >   ZeroWidth   :: PatternError
 >   SpaceError  :: PatternError
->   DecError    :: String -> PatternError 
->   IncError    :: String -> String -> PatternError -- old width, new width, error 
+>   DecError    :: PatternError 
+>   IncError    :: PatternError -- old width, new width, error 
 >   FlipEarly   :: PatternError 
 >   BegSpace    :: PatternError 
 >   NoTurnChain :: PatternError 
@@ -48,15 +48,15 @@ CVS (Crochet Validity Scrutinizer)
 > 
 > showPatErr :: PatternError -> String 
 > showPatErr ZeroWidth      = "The Width is Zero"
-> showPatErr (SpaceError)   = "There are too many spaces in this row, there are over 5 consecutively."
-> showPatErr (DecError x)   = "Too many stitches have been combined, you tried to combine: " ++ x
-> showPatErr (IncError x y) = "The new width is : " ++ y ++ "which is double or more than the old width, which is: " ++ x
+> showPatErr SpaceError     = "There are too many spaces in this row, there are over 5 consecutively."
+> showPatErr DecError       = "Too many stitches have been combined, you tried to combine more than two stitches together "
+> showPatErr IncError       = "You tried to add too many stitches on top of this one" 
 > showPatErr FlipEarly      = "Flipped before end of row"
 > showPatErr BegSpace       = "Can't start a row with a space"
 > showPatErr NoTurnChain    = "There is no turning chain"
 > showPatErr NoPull         = "There was no pull through at the end"
+> showPatErr TrebleError    = "You cannot have these two types next to each other."
 > showPatErr ProgFail       = "Something went wrong within the program. Dunno about your pattern! Sorry!"
-> showPatErr TrebleError    = "uh oh treble"
 > showPatErr _              = "Uh I don't know what to do with this error, haven't accounted for it."
 >
 > -- important variables to keep track of 
@@ -120,8 +120,8 @@ CVS (Crochet Validity Scrutinizer)
 > checkFlip Flip = True 
 > checkFlip _ = False
 > 
-> checkSpace :: Part-> Bool
-> checkSpace (S (Space 5))= True
+> checkSpace :: Part -> Bool
+> checkSpace (S (Space x)) = if x <= 5 then True else False
 > checkSpace _ = False
 >
 > parse2 :: Parser Part
@@ -143,6 +143,20 @@ CVS (Crochet Validity Scrutinizer)
 > checkBegSpace (S(Space y ))(x: parts) = (S (Space y)) == x
 > checkBegSpace _ _ = False 
 >
+> checkInc :: Integer -> Part -> Bool
+> checkInc y (S(SingleCrochet _)) = if y>2 then True else False
+> checkInc y (S(DoubleCrochet _)) = if y>2 then True else False
+> checkInc y (S(TrebleCrochet _)) = if y>2 then True else False
+> checkInc y (S(SlipStitch    _)) = if y>2 then True else False
+> checkInc _ _ = False
+>
+> checkDec :: Part -> Bool
+> checkDec  (S(SingleCrochet y)) = if y>2 then True else False
+> checkDec  (S(DoubleCrochet y)) = if y>2 then True else False
+> checkDec  (S(TrebleCrochet y)) = if y>2 then True else False
+> checkDec  (S(SlipStitch    y)) = if y>2 then True else False
+> checkDec  _ = False
+>
 > data Progress where
 >   Working :: [Part] -> Progress
 >   Done :: Bool -> Progress
@@ -154,18 +168,20 @@ CVS (Crochet Validity Scrutinizer)
 > step (Working []) = Done True
 > step (Done bool) = Done bool
 > step (Working row) 
->   | checkBegSpace (S(Space 1)) row   = Error BegSpace    -- works
->   | checkFlipChain FlipChain row     = Error NoTurnChain -- works  CAN'T CHECK FLIPCHAIN AND PULL THROUGH AT SAME TIME
->   | checkPullThrough PullThrough row = Error NoPull      -- works 
+>   | checkBegSpace (S(Space 1)) row = Error BegSpace  -- works
+>   | checkFlipChain FlipChain row = Error NoTurnChain -- works  CAN'T CHECK FLIPCHAIN AND PULL THROUGH AT SAME TIME
+>   | checkPullThrough PullThrough row = Error NoPull  -- works 
 > step (Working (x: row)) 
->   | checkSpace x = Error SpaceError
+>   | checkSpace x = Error SpaceError --WRONG IN THE FUNCTION
+>   | checkInc x  = Error IncError
+>   | checkDec x = Error DecError
 > step (Working (x:y: row))
 >   | checkTreble x y = Error TrebleError 
 
 > -- turn the row cases into a guard case instead. Fixes infinite loop.
 > -- Need to change the S Space of CheckBegSpace because it doesn't catch all cases currently.
 > step (Error e) = Error e
-> step _ = Done True 
+> step _ = Done True
 >  
 
 > steps :: Progress -> Progress
