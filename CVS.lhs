@@ -130,13 +130,13 @@ CVS (Crochet Validity Scrutinizer)
 > checkFC FlipChain = True 
 > checkFC _ = False 
 > 
-> checkPullThrough :: Part -> Bool 
-> checkPullThrough PullThrough = True 
-> checkPullThrough _ = False 
+> checkPullThrough :: Part -> [Part] -> Bool 
+> checkPullThrough PullThrough parts = if (last parts) == PullThrough then False else True
+> checkPullThrough _ _ = True 
 > 
 > checkFlipChain :: Part -> [Part] -> Bool
 > checkFlipChain FlipChain (x: parts) = if FlipChain == x then False else checkFlipChain FlipChain parts
-> checkFlipChain _ _ = False
+> checkFlipChain _ _ = True
 > 
 > checkBegSpace :: Part -> [Part] -> Bool
 > checkBegSpace (S(Space y ))(x: parts) = (S (Space y)) == x
@@ -153,8 +153,9 @@ CVS (Crochet Validity Scrutinizer)
 > step (Working []) = Done True
 > step (Done bool) = Done bool
 > step (Working row) 
->   | checkFlipChain FlipChain row = Error NoTurnChain
->   | checkBegSpace (S(Space 1)) row = Error BegSpace
+>   | checkBegSpace (S(Space 1)) row = Error BegSpace  -- works
+>   | checkFlipChain FlipChain row = Error NoTurnChain -- works  CAN'T CHECK FLIPCHAIN AND PULL THROUGH AT SAME TIME
+>   | checkPullThrough PullThrough row = Error NoPull  -- works 
 > step (Working (x: row)) 
 >   | checkSpace x = Error SpaceError
 > step (Working (x:y: row))
