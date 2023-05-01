@@ -48,7 +48,7 @@ CVS (Crochet Validity Scrutinizer)
 > 
 > showPatErr :: PatternError -> String 
 > showPatErr ZeroWidth      = "The Width is Zero"
-> showPatErr (SpaceError) = "There are too many spaces in this row, there are over 5 consecutively"
+> showPatErr (SpaceError)   = "There are too many spaces in this row, there are over 5 consecutively."
 > showPatErr (DecError x)   = "Too many stitches have been combined, you tried to combine: " ++ x
 > showPatErr (IncError x y) = "The new width is : " ++ y ++ "which is double or more than the old width, which is: " ++ x
 > showPatErr FlipEarly      = "Flipped before end of row"
@@ -135,7 +135,7 @@ CVS (Crochet Validity Scrutinizer)
 > checkPullThrough _ = False 
 > 
 > checkFlipChain :: Part -> [Part] -> Bool
-> checkFlipChain FlipChain (x :parts) = if FlipChain == x then True else checkFlipChain FlipChain parts
+> checkFlipChain FlipChain (x: parts) = if FlipChain == x then False else checkFlipChain FlipChain parts
 > checkFlipChain _ _ = False
 > 
 > checkBegSpace :: Part -> [Part] -> Bool
@@ -145,27 +145,31 @@ CVS (Crochet Validity Scrutinizer)
 > data Progress where
 >   Working :: [Part] -> Progress
 >   Done :: Bool -> Progress
->   Error :: PatternError -> String -> Progress
+>   Error :: PatternError -> Progress
 > -- add the needed items for the environment to the Progress data type.
 > -- Error ProgFail just accounts for the fact that the pattern may be vaild but something went wrong that isn't the users fault.
 
 > step :: Progress -> Progress
 > step (Working []) = Done True
 > step (Done bool) = Done bool
-> step (Working (x:y: row)) = if checkTreble x y then Error TrebleError (showPatErr TrebleError) else Working (y:row)
-> step (Working (x: row)) = if checkSpace x then Error SpaceError (showPatErr SpaceError) else Working (x: row)
-> step (Working (row)) = if checkFlipChain FlipChain row then Error NoTurnChain (showPatErr NoTurnChain) else Working (row)
-> step (Working (row)) = if checkBegSpace (S(Space 1)) row then Error BegSpace (showPatErr BegSpace) else Working (row)
+> step (Working row) 
+>   | checkFlipChain FlipChain row = Error NoTurnChain
+>   | checkBegSpace (S(Space 1)) row = Error BegSpace
+> step (Working (x: row)) 
+>   | checkSpace x = Error SpaceError
+> step (Working (x:y: row))
+>   | checkTreble x y = Error TrebleError 
+
 > -- turn the row cases into a guard case instead. Fixes infinite loop.
 > -- Need to change the S Space of CheckBegSpace because it doesn't catch all cases currently.
-> step (Error e _) = Error e (showPatErr e)
-> step _ = Error ProgFail (showPatErr ProgFail)
+> step (Error e) = Error e
+> step _ = Error ProgFail
 >  
 
 > steps :: Progress -> Progress
 > steps (Working parts) = step (Working parts)
 > steps (Done bool) = Done bool
-> steps _ = Error ProgFail (showPatErr ProgFail)
+> steps _ = Error ProgFail
 
 > execute :: [Part] -> Progress
 > execute parts = 
@@ -173,12 +177,12 @@ CVS (Crochet Validity Scrutinizer)
 >        Working [] -> Done True
 >        Working parts' -> execute parts'
 >        Done bool -> Done bool 
->        Error e _ -> Error e (showPatErr e)
+>        Error e -> Error e
 > 
 > run :: [Part] -> Either String Bool 
 > run parts = 
 >   case execute parts of 
 >     Done True -> Right True 
->     --Done False -> Just False -- we probably don't need it 
->     Error e _  -> Left (showPatErr e)   -- the cause of our problems
+>     Done False -> Right False -- we probably don't need it 
+>     Error e -> Left (showPatErr e)   -- the cause of our problems
 >     Working _ -> Right (False)
