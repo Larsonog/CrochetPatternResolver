@@ -156,6 +156,9 @@ CVS (Crochet Validity Scrutinizer)
 > checkDec (Decrease y (TrebleCrochet _)) = if y>2 then True else False
 > checkDec (Decrease y (SlipStitch    _)) = if y>2 then True else False
 > checkDec  _ = False
+> 
+> checkChain :: Part -> Bool 
+> checkChain x = if x == (S(Chain _)) then True else False
 >
 > data Progress where
 >   Working :: [Part] -> Progress
@@ -172,11 +175,11 @@ CVS (Crochet Validity Scrutinizer)
 >   | checkFlipChain FlipChain row = Error NoTurnChain -- works  CAN'T CHECK FLIPCHAIN AND PULL THROUGH AT SAME TIME
 >   | checkPullThrough PullThrough row = Error NoPull  -- works 
 > step (Working (x: row)) 
->   | checkSpace x = Error SpaceError --WRONG IN THE FUNCTION
->   | checkInc x  = Error IncError
->   | checkDec x = Error DecError
+>   | checkSpace x = Error SpaceError                  -- works 
+>   | checkInc x  = Error IncError                     -- works 
+>   | checkDec x = Error DecError                      -- works 
 > step (Working (x:y: row))
->   | checkTreble x y = Error TrebleError 
+>   | checkTreble x y = Error TrebleError              -- works 
 
 > -- turn the row cases into a guard case instead. Fixes infinite loop.
 > -- Need to change the S Space of CheckBegSpace because it doesn't catch all cases currently.
