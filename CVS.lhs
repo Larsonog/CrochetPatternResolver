@@ -65,7 +65,7 @@ CVS (Crochet Validity Scrutinizer)
 > lexer :: TokenParser u
 > lexer = makeTokenParser $
 >   emptyDef
->   { reservedNames   = ["row:" ],     
+>   { reservedNames   = [ "row: "],     -- row: [X, Y ,Z] row: [A ,B] or [A,B,C,D ; x,y,z]
 >     reservedOpNames = ["ss","sc", "dc", "tc", "sp", "ch", "repeat", "inc", "tog", "remaining", "fc", "fl", ",", "pt"]}  
 > 
 > integer :: Parser Integer
@@ -80,6 +80,9 @@ CVS (Crochet Validity Scrutinizer)
 > 
 > parseRow :: Parser Row
 > parseRow = parsePart `sepBy` reservedOp ","
+>
+> --Need to add a special symbol that is recognized as the change between rows, such as ; 
+> -- SemiSep1 might be useful.
 >
 > parseStitch:: Parser Stitch
 > parseStitch =
@@ -158,10 +161,11 @@ CVS (Crochet Validity Scrutinizer)
 > checkDec  _ = False
 > 
 > checkChain :: Part -> Bool 
-> checkChain x = if x == (S(Chain _)) then True else False
+> checkChain (S(Chain x)) = True
+> checkChain _ =  False
 >
 > data Progress where
->   Working :: [Part] -> Progress
+>   Working :: [Part] -> Progress -- Add Integer -> Integer in the middle, Current Width -> Old Width. 
 >   Done :: Bool -> Progress
 >   Error :: PatternError -> Progress
 > -- add the needed items for the environment to the Progress data type.
