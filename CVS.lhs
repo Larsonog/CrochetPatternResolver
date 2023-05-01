@@ -56,6 +56,7 @@ CVS (Crochet Validity Scrutinizer)
 > showPatErr NoTurnChain    = "There is no turning chain"
 > showPatErr NoPull         = "There was no pull through at the end"
 > showPatErr ProgFail       = "Something went wrong within the program. Dunno about your pattern! Sorry!"
+> showPatErr TrebleError    = "uh oh treble"
 > showPatErr _              = "Uh I don't know what to do with this error, haven't accounted for it."
 >
 > -- important variables to keep track of 
@@ -153,9 +154,9 @@ CVS (Crochet Validity Scrutinizer)
 > step (Working []) = Done True
 > step (Done bool) = Done bool
 > step (Working row) 
->   | checkBegSpace (S(Space 1)) row = Error BegSpace  -- works
->   | checkFlipChain FlipChain row = Error NoTurnChain -- works  CAN'T CHECK FLIPCHAIN AND PULL THROUGH AT SAME TIME
->   | checkPullThrough PullThrough row = Error NoPull  -- works 
+>   | checkBegSpace (S(Space 1)) row   = Error BegSpace    -- works
+>   | checkFlipChain FlipChain row     = Error NoTurnChain -- works  CAN'T CHECK FLIPCHAIN AND PULL THROUGH AT SAME TIME
+>   | checkPullThrough PullThrough row = Error NoPull      -- works 
 > step (Working (x: row)) 
 >   | checkSpace x = Error SpaceError
 > step (Working (x:y: row))
@@ -164,7 +165,7 @@ CVS (Crochet Validity Scrutinizer)
 > -- turn the row cases into a guard case instead. Fixes infinite loop.
 > -- Need to change the S Space of CheckBegSpace because it doesn't catch all cases currently.
 > step (Error e) = Error e
-> step _ = Error ProgFail
+> step _ = Done True 
 >  
 
 > steps :: Progress -> Progress
