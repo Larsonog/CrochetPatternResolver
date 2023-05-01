@@ -146,7 +146,7 @@ CVS (Crochet Validity Scrutinizer)
 >   Working :: [Part] -> Progress
 >   Done :: Bool -> Progress
 >   Error :: PatternError -> String -> Progress
->
+> -- add the needed items for the environment to the Progress data type.
 > -- Error ProgFail just accounts for the fact that the pattern may be vaild but something went wrong that isn't the users fault.
 
 > step :: Progress -> Progress
@@ -156,6 +156,7 @@ CVS (Crochet Validity Scrutinizer)
 > step (Working (x: row)) = if checkSpace x then Error SpaceError (showPatErr SpaceError) else Working (x: row)
 > step (Working (row)) = if checkFlipChain FlipChain row then Error NoTurnChain (showPatErr NoTurnChain) else Working (row)
 > step (Working (row)) = if checkBegSpace (S(Space 1)) row then Error BegSpace (showPatErr BegSpace) else Working (row)
+> -- turn the row cases into a guard case instead. Fixes infinite loop.
 > -- Need to change the S Space of CheckBegSpace because it doesn't catch all cases currently.
 > step (Error e _) = Error e (showPatErr e)
 > step _ = Error ProgFail (showPatErr ProgFail)
