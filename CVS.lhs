@@ -63,6 +63,9 @@ CVS (Crochet Validity Scrutinizer)
 > showPatErr ProgFail       = "Something went wrong within the program. Dunno about your pattern! Sorry!"
 > showPatErr _              = "Uh I don't know what to do with this error, haven't accounted for it."
 >
+>
+> showWidth :: Integer -> Integer -> String 
+> showWidth o n = "the original width is: " ++ show(o) ++ " the new width is: " ++ show(n)
 > -- important variables to keep track of 
 > -- similarity to arith interpreter, so need to create an environment. take in the width and keep track of it through the environment
 > -- Parsers 
@@ -184,12 +187,21 @@ CVS (Crochet Validity Scrutinizer)
 > setUpNWid (Decrease x (_)) y     = y - x
 > setUpNWid _ y = y
 > 
-> checkWidth :: Row -> Integer -> Integer -> Bool
-> checkWidth row o n
+> checkWidth :: Integer -> Integer -> Bool
+> checkWidth  o n
 >   | n > 2 * o = True
 >   | n < o `div` 2 = True 
-> checkWidth row 0 n = True
-> checkWidth _ _ _ = False
+> checkWidth _ _ = False
+> 
+> checkStitch :: Part -> Bool 
+> checkStitch (Increase _ _) = True 
+> checkStitch (Decrease _ _) = True
+> checkStitch (S(SlipStitch _ )) = True
+> checkStitch (S(SingleCrochet _ )) = True
+> checkStitch (S(DoubleCrochet _ )) = True
+> checkStitch (S(TrebleCrochet _ )) = True
+> checkStitch _  = False
+>
 
 >
 > data Progress where
@@ -208,15 +220,18 @@ CVS (Crochet Validity Scrutinizer)
 >   | checkBegSpace (S(Space 1)) row = Error BegSpace  -- works
 >   | checkFlipChain FlipChain row = Error NoTurnChain -- works  CAN'T CHECK FLIPCHAIN AND PULL THROUGH AT SAME TIME
 >   | checkPullThrough PullThrough row = Error NoPull  -- works 
->   | checkWidth row o n = Error WidthSize
+>   | checkWidth o n = Error WidthSize
 > step (Working o n (x: row) ) 
 >   | checkSpace x = Error SpaceError                  -- works 
 >   | checkInc x  = Error IncError                     -- works 
 >   | checkDec x = Error DecError                      -- works 
->   | checkChain x = Working (setUpOWid x) n row
->   | otherwise = Working o (setUpNWid x o) row 
+>   | checkChain x = Working (setUpOWid x) (setUpOWid x) row
+>   | checkStitch x = Working o (setUpNWid x o) row
+>   | checkWidth o n = Error WidthSize
 > step (Working o n (x:y: row))
->   | checkTreble x y = Error TrebleError              -- works 
+>   | checkTreble x y = Error TrebleError              -- works
+>   | checkStitch x  && checkStitch y  = Working o (((setUpNWid x o) +(setUpNWid y o) )) row 
+>   | checkWidth o n = Error WidthSize
 
 > -- turn the row cases into a guard case instead. Fixes infinite loop.
 > -- Need to change the S Space of CheckBegSpace because it doesn't catch all cases currently.
