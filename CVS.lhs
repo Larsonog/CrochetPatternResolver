@@ -31,7 +31,7 @@ CVS (Crochet Validity Scrutinizer)
 > -- Change the way that dec is defined to Num(Tog(stitch)) and same for inc.
 
 > --Another comprehensive ADT or editing Part to have stitches in it. is needed for parts and stitches together so that row can be defined as a list of the parts.
-
+> type Pattern = [Row]
 > type Row = [Part]
 > data PatternError where 
 >   ZeroWidth   :: PatternError
@@ -65,8 +65,7 @@ CVS (Crochet Validity Scrutinizer)
 > lexer :: TokenParser u
 > lexer = makeTokenParser $
 >   emptyDef
->   { reservedNames   = [ "row: "],     -- row: [X, Y ,Z] row: [A ,B] or [A,B,C,D ; x,y,z]
->     reservedOpNames = ["ss","sc", "dc", "tc", "sp", "ch", "repeat", "inc", "tog", "remaining", "fc", "fl", ",", "pt"]}  
+>   { reservedOpNames = ["ss","sc", "dc", "tc", "sp", "ch", "repeat", "inc", "tog", "remaining", "fc", "fl", "pt", ",", ";"]}  
 > 
 > integer :: Parser Integer
 > integer = getInteger lexer
@@ -81,6 +80,8 @@ CVS (Crochet Validity Scrutinizer)
 > parseRow :: Parser Row
 > parseRow = parsePart `sepBy` reservedOp ","
 >
+> parsePattern :: Parser Pattern
+> parsePattern = parseRow `sepBy` reservedOp ";"
 > --Need to add a special symbol that is recognized as the change between rows, such as ; 
 > -- SemiSep1 might be useful.
 >
