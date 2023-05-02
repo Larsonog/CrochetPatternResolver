@@ -66,6 +66,10 @@ CVS (Crochet Validity Scrutinizer)
 >
 > showWidth :: Integer -> Integer -> String 
 > showWidth o n = "the original width is: " ++ show(o) ++ " the new width is: " ++ show(n)
+> 
+> showBool :: Bool -> String 
+> showBool True = "Great! Your pattern is valid!!!!!!!!!!!"
+> showBool False = "Oh no! Your pattern is invalid! Sorry!"
 > -- important variables to keep track of 
 > -- similarity to arith interpreter, so need to create an environment. take in the width and keep track of it through the environment
 > -- Parsers 
@@ -252,10 +256,10 @@ CVS (Crochet Validity Scrutinizer)
 >        Done bool -> Done bool 
 >        Error e -> Error e
 > 
-> run :: Integer -> Integer -> [Part] -> Either String Bool 
+> run :: Integer -> Integer -> [Part] -> String 
 > run o n parts = 
 >   case execute o n parts of 
->     Done True -> Right True 
->     Done False -> Right False -- we probably don't need it 
->     Error e -> Left (showPatErr e)   -- the cause of our problems
->     Working o n _ -> Right (False)
+>     Done True -> showBool True 
+>     Done False -> showBool False -- we probably don't need it 
+>     Error e -> showPatErr e   -- the cause of our problems
+>     Working o n _ -> showBool False
