@@ -1,5 +1,6 @@
 > {-# LANGUAGE GADTs #-}
 > import Parsing2
+
   
 CVS (Crochet Validity Scrutinizer)
 ==================================
@@ -31,8 +32,9 @@ CVS (Crochet Validity Scrutinizer)
 > -- Change the way that dec is defined to Num(Tog(stitch)) and same for inc.
 
 > --Another comprehensive ADT or editing Part to have stitches in it. is needed for parts and stitches together so that row can be defined as a list of the parts.
-> type Pattern = [Row]
+
 > type Row = [Part]
+> type Pattern = [Row]
 > data PatternError where 
 >   ZeroWidth   :: PatternError
 >   SpaceError  :: PatternError
@@ -43,6 +45,7 @@ CVS (Crochet Validity Scrutinizer)
 >   NoTurnChain :: PatternError 
 >   NoPull      :: PatternError  
 >   TrebleError :: PatternError
+>   WidthSize   :: PatternError
 >   ProgFail    :: PatternError
 >   deriving (Show)
 > 
@@ -56,6 +59,7 @@ CVS (Crochet Validity Scrutinizer)
 > showPatErr NoTurnChain    = "There is no turning chain"
 > showPatErr NoPull         = "There was no pull through at the end"
 > showPatErr TrebleError    = "You cannot have these two types next to each other."
+> showPatErr WidthSize      = "The width is either too large or too small!"
 > showPatErr ProgFail       = "Something went wrong within the program. Dunno about your pattern! Sorry!"
 > showPatErr _              = "Uh I don't know what to do with this error, haven't accounted for it."
 >
@@ -65,7 +69,7 @@ CVS (Crochet Validity Scrutinizer)
 > lexer :: TokenParser u
 > lexer = makeTokenParser $
 >   emptyDef
->   { reservedOpNames = ["ss","sc", "dc", "tc", "sp", "ch", "repeat", "inc", "tog", "remaining", "fc", "fl", "pt", ",", ";"]}  
+>   { reservedOpNames = ["ss","sc", "dc", "tc", "sp", "ch", "repeat", "inc", "tog", "remaining", "fc", "fl", ",", "pt", ";"]}  
 > 
 > integer :: Parser Integer
 > integer = getInteger lexer
@@ -79,9 +83,11 @@ CVS (Crochet Validity Scrutinizer)
 > 
 > parseRow :: Parser Row
 > parseRow = parsePart `sepBy` reservedOp ","
+> parseRows :: Parser Pattern
+> parseRows = parseRow `sepBy` reservedOp ";"
+> -- because we have this we can now implement width and the pullthrough errors. 
 >
-> parsePattern :: Parser Pattern
-> parsePattern = parseRow `sepBy` reservedOp ";"
+>
 > --Need to add a special symbol that is recognized as the change between rows, such as ; 
 > -- SemiSep1 might be useful.
 >
@@ -164,26 +170,52 @@ CVS (Crochet Validity Scrutinizer)
 > checkChain :: Part -> Bool 
 > checkChain (S(Chain x)) = True
 > checkChain _ =  False
+> 
+> setUpOWid :: Part -> Integer
+> setUpOWid (S(Chain x)) = x  
+>
+> setUpNWid :: Part -> Integer -> Integer
+> setUpNWid (S(SingleCrochet x)) y = x + y
+> setUpNWid (S(DoubleCrochet x)) y = x + y 
+> setUpNWid (S(TrebleCrochet x)) y = x + y 
+> setUpNWid (S(SlipStitch x)) y    = x + y 
+> setUpNWid (S(Space x)) y         = x + y 
+> setUpNWid (Increase x (_)) y     = x + y 
+> setUpNWid (Decrease x (_)) y     = y - x
+> setUpNWid _ y = y
+> 
+> checkWidth :: Row -> Integer -> Integer -> Bool
+> checkWidth row o n
+>   | n > 2 * o = True
+>   | n < o `div` 2 = True 
+> checkWidth row 0 n = True
+> checkWidth _ _ _ = False
+
 >
 > data Progress where
->   Working :: [Part] -> Progress -- Add Integer -> Integer in the middle, Current Width -> Old Width. 
+>   Working :: Integer -> Integer -> [Part] -> Progress -- Add Integer -> Integer in the middle, Current Width -> Old Width. 
 >   Done :: Bool -> Progress
 >   Error :: PatternError -> Progress
 > -- add the needed items for the environment to the Progress data type.
 > -- Error ProgFail just accounts for the fact that the pattern may be vaild but something went wrong that isn't the users fault.
+>
 
+>
 > step :: Progress -> Progress
-> step (Working []) = Done True
+> step (Working _ _[]) = Done True
 > step (Done bool) = Done bool
-> step (Working row) 
+> step (Working o n row)  -- o is old width, n is new width
 >   | checkBegSpace (S(Space 1)) row = Error BegSpace  -- works
 >   | checkFlipChain FlipChain row = Error NoTurnChain -- works  CAN'T CHECK FLIPCHAIN AND PULL THROUGH AT SAME TIME
 >   | checkPullThrough PullThrough row = Error NoPull  -- works 
-> step (Working (x: row)) 
+>   | checkWidth row o n = Error WidthSize
+> step (Working o n (x: row) ) 
 >   | checkSpace x = Error SpaceError                  -- works 
 >   | checkInc x  = Error IncError                     -- works 
 >   | checkDec x = Error DecError                      -- works 
-> step (Working (x:y: row))
+>   | checkChain x = Working (setUpOWid x) n row
+>   | otherwise = Working o (setUpNWid x o) row 
+> step (Working o n (x:y: row))
 >   | checkTreble x y = Error TrebleError              -- works 
 
 > -- turn the row cases into a guard case instead. Fixes infinite loop.
@@ -193,22 +225,22 @@ CVS (Crochet Validity Scrutinizer)
 >  
 
 > steps :: Progress -> Progress
-> steps (Working parts) = step (Working parts)
+> steps (Working o n parts) = step (Working o n parts)
 > steps (Done bool) = Done bool
 > steps _ = Error ProgFail
 
-> execute :: [Part] -> Progress
-> execute parts = 
->    case step(Working parts) of 
->        Working [] -> Done True
->        Working parts' -> execute parts'
+> execute :: Integer-> Integer -> [Part] -> Progress
+> execute o n parts = 
+>    case step(Working o n parts) of 
+>        Working o n [] -> Done True
+>        Working o' n' parts' -> execute o' n' parts'
 >        Done bool -> Done bool 
 >        Error e -> Error e
 > 
-> run :: [Part] -> Either String Bool 
-> run parts = 
->   case execute parts of 
+> run :: Integer -> Integer -> [Part] -> Either String Bool 
+> run o n parts = 
+>   case execute o n parts of 
 >     Done True -> Right True 
 >     Done False -> Right False -- we probably don't need it 
 >     Error e -> Left (showPatErr e)   -- the cause of our problems
->     Working _ -> Right (False)
+>     Working o n _ -> Right (False)
