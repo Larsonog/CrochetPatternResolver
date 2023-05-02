@@ -4,7 +4,8 @@
   
 CVS (Crochet Validity Scrutinizer)
 ==================================
-
+All of these are common stitches that a beginner would find and are the building blocks
+of all patterns and more complex stitches. 
 
 > data Stitch where 
 >   SlipStitch    :: Integer -> Stitch -- slip stitch
@@ -15,28 +16,28 @@ CVS (Crochet Validity Scrutinizer)
 >   Chain         :: Integer -> Stitch -- chain 
 >   deriving (Show, Eq)
 > 
+
+Parts are different because they can involve or build upon a stitch or is used to finish off or
+flip the work. 
+
 > data Part where 
->   S         :: Stitch -> Part
->   Increase    :: Integer -> Stitch -> Part --CHANGED DEFINITION TO INC NUM(STITCH) -> OP X Y
->   Decrease    :: Integer -> Stitch -> Part --wiggliness on the definition
->   Remaining   :: Integer -> Part
->   FlipChain   :: Part -- flip chain 
+>   S           :: Stitch -> Part
+>   Increase    :: Integer -> Stitch -> Part -- increase in the pattern looks like (Increase 2 (SingleCrochet 1)) this means you put 5 singlecrochets in that stitch 
+>   Decrease    :: Integer -> Stitch -> Part -- similarly decrease looks like (Decrease 2 (SingleCrochet 1)) this means you work 2 single crochets together, thus decreasing the width
+>   FlipChain   :: Part -- flip chain is something you always do at the end of the row 
 >   Flip        :: Part -- flip the piece
->   PullThrough :: Part 
-> --add stitches here.
+>   PullThrough :: Part -- finishes off the piece
 >   deriving (Show, Eq)
 > 
+> type Row = [Part] -- Row is a list of parts that a pattern can be built off of 
+> type Pattern = [Row] -- Pattern is a list of rows 
 
-> --Maybe take a page from the way that IMP defined parts of ADTs to be more general.
+The pattern errors we chose are the ones that beginners are most likely to encounter. While some of these 
+are technically allowed and used in higher level projects, its bad technique for beginners and they are most 
+most likely to mess up their piece. 
 
-> -- Change the way that dec is defined to Num(Tog(stitch)) and same for inc.
-
-> --Another comprehensive ADT or editing Part to have stitches in it. is needed for parts and stitches together so that row can be defined as a list of the parts.
-
-> type Row = [Part]
-> type Pattern = [Row]
 > data PatternError where 
->   ZeroWidth   :: PatternError
+>   ZeroWidth   :: PatternError 
 >   SpaceError  :: PatternError
 >   DecError    :: PatternError 
 >   IncError    :: PatternError -- old width, new width, error 
@@ -113,7 +114,6 @@ CVS (Crochet Validity Scrutinizer)
 >       S <$> parseStitch
 >   <|> Increase <$> integer <*> parseStitch <* reservedOp "inc" 
 >   <|> Decrease <$> integer <*> parseStitch <* reservedOp "tog"
->   <|> Remaining <$> integer <* reservedOp "remaining"
 >   <|> FlipChain <$ reservedOp "fc"
 >   <|> Flip <$ reservedOp "fl"
 >   <|> PullThrough <$ reservedOp "pt"
