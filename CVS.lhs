@@ -91,7 +91,7 @@ most likely to mess up their piece.
 > 
 > parseRow :: Parser Row
 > parseRow = parsePart `sepBy` reservedOp ","
-> parseRows :: Parser Pattern
+> parseRows :: Parser Pattern -- don't need this any more 
 > parseRows = parseRow `sepBy` reservedOp ";"
 > -- because we have this we can now implement width and the pullthrough errors. 
 >
@@ -209,7 +209,7 @@ most likely to mess up their piece.
 
 >
 > data Progress where
->   Working :: Integer -> Integer -> [Part] -> Progress -- Add Integer -> Integer in the middle, Current Width -> Old Width. 
+>   Working :: Integer -> Integer -> Pattern -> Progress -- Add Integer -> Integer in the middle, Current Width -> Old Width. 
 >   Done :: Bool -> Progress
 >   Error :: PatternError -> Progress
 > -- add the needed items for the environment to the Progress data type.
@@ -220,21 +220,21 @@ most likely to mess up their piece.
 > step :: Progress -> Progress
 > step (Working _ _[]) = Done True
 > step (Done bool) = Done bool
-> step (Working o n row)  -- o is old width, n is new width
->   | checkBegSpace (S(Space 1)) row = Error BegSpace  -- works
->   | checkFlipChain FlipChain row = Error NoTurnChain -- works  CAN'T CHECK FLIPCHAIN AND PULL THROUGH AT SAME TIME
->   | checkPullThrough PullThrough row = Error NoPull  -- works 
+> step (Working o n (r:pattern))  -- o is old width, n is new width
+>   | checkBegSpace (S(Space 1)) (r) = Error BegSpace  -- works
+>   | checkFlipChain FlipChain r = Error NoTurnChain -- works  CAN'T CHECK FLIPCHAIN AND PULL THROUGH AT SAME TIME
+>   | checkPullThrough PullThrough r = Error NoPull  -- works 
 >   | checkWidth o n = Error WidthSize
-> step (Working o n (x: row) ) 
+> step (Working o n ((x:p):pattern) ) 
 >   | checkSpace x = Error SpaceError                  -- works 
 >   | checkInc x  = Error IncError                     -- works 
 >   | checkDec x = Error DecError                      -- works 
->   | checkChain x = Working (setUpOWid x) (setUpOWid x) row
->   | checkStitch x = Working o (setUpNWid x o) row
+>   | checkChain x = Working (setUpOWid x) (setUpOWid x) pattern
+>   | checkStitch x = Working o (setUpNWid x o) pattern
 >   | checkWidth o n = Error WidthSize
-> step (Working o n (x:y: row))
+> step (Working o n ((x:y:p):pattern))
 >   | checkTreble x y = Error TrebleError              -- works
->   | checkStitch x  && checkStitch y  = Working o (((setUpNWid x o) +(setUpNWid y o) )) row 
+>   | checkStitch x  && checkStitch y  = Working o (((setUpNWid x o) +(setUpNWid y o) )) pattern 
 >   | checkWidth o n = Error WidthSize
 
 > -- turn the row cases into a guard case instead. Fixes infinite loop.
@@ -244,21 +244,21 @@ most likely to mess up their piece.
 >  
 
 > steps :: Progress -> Progress
-> steps (Working o n parts) = step (Working o n parts)
+> steps (Working o n pattern) = step (Working o n pattern)
 > steps (Done bool) = Done bool
 > steps _ = Error ProgFail
 
-> execute :: Integer-> Integer -> [Part] -> Progress
-> execute o n parts = 
->    case step(Working o n parts) of 
+> execute :: Integer-> Integer -> Pattern -> Progress
+> execute o n (pattern) = 
+>    case step(Working o n pattern) of 
 >        Working o n [] -> Done True
->        Working o' n' parts' -> execute o' n' parts'
+>        Working o' n' pattern' -> execute o' n' pattern'
 >        Done bool -> Done bool 
 >        Error e -> Error e
 > 
-> run :: Integer -> Integer -> [Part] -> String 
-> run o n parts = 
->   case execute o n parts of 
+> run :: Integer -> Integer -> Pattern -> String 
+> run o n pattern = 
+>   case execute o n pattern of 
 >     Done True -> showBool True 
 >     Done False -> showBool False -- we probably don't need it 
 >     Error e -> showPatErr e   -- the cause of our problems
