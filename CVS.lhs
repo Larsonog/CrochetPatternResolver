@@ -127,7 +127,7 @@ All of the below functions are meant to check individual parts that can cause er
 > checkFlip _ = False
 > 
 > checkSpace :: Part -> Bool
-> checkSpace (S (Space x)) = x <= 5
+> checkSpace (S (Space x)) = x >= 5
 > checkSpace _ = False
 >
 > parse2 :: Parser Part
@@ -211,10 +211,9 @@ An ADT that is supposed to keep track of where and what the machine is doing at 
 > step :: Progress -> Progress
 > step (Working _ _[]) = Done True
 > step (Done bool) = Done bool
-> step (Working o n (r:pattern))  -- o is old width, n is new width
->   | checkBegSpace (S(Space 1)) r = Error BegSpace
->   | checkFlipChain FlipChain r = Error NoTurnChain
->   | checkPullThrough PullThrough pattern = Error NoPull 
+> step (Working o n ((x:y:p):pattern))
+>   | checkTreble x y = Error TrebleError              -- works
+>   | checkStitch x  && checkStitch y  = Working o (setUpNWid x o + setUpNWid y o) ((y:p):pattern) 
 >   | checkWidth o n = Error WidthSize
 > step (Working o n ((x:p):pattern) ) 
 >   | checkSpace x = Error SpaceError                  
@@ -223,9 +222,10 @@ An ADT that is supposed to keep track of where and what the machine is doing at 
 >   | checkChain x = Working (setUpOWid x) (setUpOWid x) pattern
 >   | checkStitch x = Working o (setUpNWid x o) pattern
 >   | checkWidth o n = Error WidthSize
-> step (Working o n ((x:y:p):pattern))
->   | checkTreble x y = Error TrebleError              -- works
->   | checkStitch x  && checkStitch y  = Working o (setUpNWid x o + setUpNWid y o) pattern 
+> step (Working o n (r:pattern))  -- o is old width, n is new width
+>   | checkBegSpace (S(Space 1)) r = Error BegSpace
+>   | checkFlipChain FlipChain r = Error NoTurnChain
+>   | checkPullThrough PullThrough pattern = Error NoPull 
 >   | checkWidth o n = Error WidthSize
 > step (Error e) = Error e
 > step _ = Done True
