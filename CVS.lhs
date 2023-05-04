@@ -1,4 +1,5 @@
 > {-# LANGUAGE GADTs #-}
+> {-# OPTIONS_GHC -Wall #-}
 > import Parsing2
 
   
@@ -179,11 +180,12 @@ most likely to mess up their piece.
 > checkDec  _ = False
 > 
 > checkChain :: Part -> Bool 
-> checkChain (S(Chain x)) = True
+> checkChain (S(Chain _)) = True
 > checkChain _ =  False
 > 
 > setUpOWid :: Part -> Integer
-> setUpOWid (S(Chain x)) = x  
+> setUpOWid (S(Chain x)) = x
+> setUpOWid _ = 0
 >
 > setUpNWid :: Part -> Integer -> Integer
 > setUpNWid (S(SingleCrochet x)) y = x + y
