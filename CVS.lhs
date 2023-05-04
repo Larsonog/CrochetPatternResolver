@@ -147,9 +147,13 @@ most likely to mess up their piece.
 > checkFC :: Part -> Bool 
 > checkFC FlipChain = True 
 > checkFC _ = False 
-> 
-> checkPullThrough :: Part -> [Part] -> Bool 
-> checkPullThrough PullThrough parts = if (last parts) == PullThrough then False else True
+>
+> lastRow :: Pattern -> Row
+> lastRow pattern = lastRow pattern
+>  
+> checkPullThrough :: Part -> Pattern -> Bool 
+> checkPullThrough PullThrough [] = False
+> checkPullThrough PullThrough pattern = if last(last pattern) == PullThrough then False  else True
 > checkPullThrough _ _ = True 
 > 
 > checkFlipChain :: Part -> [Part] -> Bool
@@ -223,7 +227,7 @@ most likely to mess up their piece.
 > step (Working o n (r:pattern))  -- o is old width, n is new width
 >   | checkBegSpace (S(Space 1)) (r) = Error BegSpace  -- works
 >   | checkFlipChain FlipChain r = Error NoTurnChain -- works  CAN'T CHECK FLIPCHAIN AND PULL THROUGH AT SAME TIME
->   | checkPullThrough PullThrough r = Error NoPull  -- works 
+>   | checkPullThrough PullThrough pattern = Error NoPull  -- works 
 >   | checkWidth o n = Error WidthSize
 > step (Working o n ((x:p):pattern) ) 
 >   | checkSpace x = Error SpaceError                  -- works 
