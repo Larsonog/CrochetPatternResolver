@@ -1,0 +1,11 @@
+Installing
+
+To use this program, clone this repository onto your computer. 
+In your terminal navigate to the directory. 
+Run GHCI. 
+Load CVS.lhs file. 
+Finally use the run function! 
+
+Use the example code to get started. Look in the Example file in this repository 
+
+It is also highly reccomended to read through the comments in the file. The CVS.lhs file helps explain all of the stitches and parts. 
