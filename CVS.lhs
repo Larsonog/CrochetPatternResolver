@@ -116,11 +116,12 @@ The names we chose in reservedOpNames for the stitches and parts are all the mos
 All of the below functions are meant to check individual parts that can cause errors and fail the program if it finds them.
 
 > checkTreble :: Part -> Part -> Bool 
-> checkTreble (S (TrebleCrochet _)) (S (SlipStitch _))  = True  
+> checkTreble (S (TrebleCrochet _)) (S (SlipStitch    _))  = True
 > checkTreble (S (TrebleCrochet _)) (S (SingleCrochet _))  = True
-> checkTreble (S (SlipStitch _)) (S (TrebleCrochet _))  = True
+> checkTreble (S (SlipStitch    _)) (S (TrebleCrochet _))  = True
 > checkTreble (S (SingleCrochet _)) (S (TrebleCrochet _))  = True
-> checkTreble _ _ = False 
+> checkTreble _ _ = False
+>
 > 
 > checkFlip :: Part -> Bool
 > checkFlip Flip = True 
@@ -179,8 +180,8 @@ All of the below functions are supposed to update or check the width for width r
 > setUpNWid (S(TrebleCrochet x)) y = x + y 
 > setUpNWid (S(SlipStitch x)) y    = x + y 
 > setUpNWid (S(Space x)) y         = x + y 
-> setUpNWid (Increase x _) y     = x + y 
-> setUpNWid (Decrease x _) y     = y - x
+> setUpNWid (Increase x _) y       = x + y 
+> setUpNWid (Decrease x _) y       = y - x
 > setUpNWid _ y = y
 > 
 > checkWidth :: Integer -> Integer -> Bool
@@ -212,7 +213,7 @@ An ADT that is supposed to keep track of where and what the machine is doing at 
 > step (Working _ _[]) = Done True
 > step (Done bool) = Done bool
 > step (Working o n ((x:y:p):pattern))
->   | checkTreble x y = Error TrebleError              -- works
+>   | checkTreble x y = Error TrebleError   
 >   | checkStitch x  && checkStitch y  = Working o (setUpNWid x o + setUpNWid y o) ((y:p):pattern) 
 >   | checkWidth o n = Error WidthSize
 > step (Working o n ((x:p):pattern) ) 
@@ -227,6 +228,9 @@ An ADT that is supposed to keep track of where and what the machine is doing at 
 >   | checkFlipChain FlipChain r = Error NoTurnChain
 >   | checkPullThrough PullThrough pattern = Error NoPull 
 >   | checkWidth o n = Error WidthSize
+> step (Working o n ([]:pattern)) = Working o n pattern
+
+
 > step (Error e) = Error e
 > step _ = Done True
 >  
