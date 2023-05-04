@@ -23,11 +23,11 @@ flip the work.
 
 > data Part where 
 >   S           :: Stitch -> Part
->   Increase    :: Integer -> Stitch -> Part -- increase in the pattern looks like (Increase 2 (SingleCrochet 1)) this means you put 5 singlecrochets in that stitch 
->   Decrease    :: Integer -> Stitch -> Part -- similarly decrease looks like (Decrease 2 (SingleCrochet 1)) this means you work 2 single crochets together, thus decreasing the width
->   FlipChain   :: Part -- flip chain is something you always do at the end of the row 
->   Flip        :: Part -- flip the piece
->   PullThrough :: Part -- finishes off the piece
+>   Increase    :: Integer -> Stitch -> Part 
+>   Decrease    :: Integer -> Stitch -> Part
+>   FlipChain   :: Part 
+>   Flip        :: Part 
+>   PullThrough :: Part 
 >   deriving (Show, Eq)
 > 
 > type Row = [Part] -- Row is a list of parts that a pattern can be built off of 
@@ -41,7 +41,7 @@ most likely to mess up their piece.
 >   ZeroWidth   :: PatternError 
 >   SpaceError  :: PatternError
 >   DecError    :: PatternError 
->   IncError    :: PatternError -- old width, new width, error 
+>   IncError    :: PatternError
 >   FlipEarly   :: PatternError 
 >   BegSpace    :: PatternError 
 >   NoTurnChain :: PatternError 
@@ -63,26 +63,23 @@ most likely to mess up their piece.
 > showPatErr TrebleError    = "You cannot have these two types next to each other."
 > showPatErr WidthSize      = "The width is either too large or too small!"
 > showPatErr ProgFail       = "Something went wrong within the program. Dunno about your pattern! Sorry!"
-> showPatErr _              = "Uh I don't know what to do with this error, haven't accounted for it."
->
->
-> showWidth :: Integer -> Integer -> String 
-> showWidth o n = "the original width is: " ++ show(o) ++ " the new width is: " ++ show(n)
-> 
+
+The showBool function is just supposed to be a nice way to show the user whether or not the pattern is valid rather than just a boolean.
+
 > showBool :: Bool -> String 
 > showBool True = "Great! Your pattern is valid!!!!!!!!!!!"
 > showBool False = "Oh no! Your pattern is invalid! Sorry!"
-> -- important variables to keep track of 
-> -- similarity to arith interpreter, so need to create an environment. take in the width and keep track of it through the environment
+
 > -- Parsers 
 > lexer :: TokenParser u
 > lexer = makeTokenParser $
 >   emptyDef
->   { reservedOpNames = ["ss","sc", "dc", "tc", "sp", "ch", "repeat", "inc", "tog", "remaining", "fc", "fl", ",", "pt", ";"]}  
-> 
+>   { reservedOpNames = ["ss","sc", "dc", "tc", "sp", "ch", "repeat", "inc", "tog", "remaining", "fc", "fl", ",", "pt"]}  
+
+The names we chose in reservedOpNames for the stitches and parts are all the most common US terminology short hand for these pieces.
+
 > integer :: Parser Integer
 > integer = getInteger lexer
->
 >
 > whiteSpace :: Parser ()
 > whiteSpace = getWhiteSpace lexer
@@ -92,13 +89,6 @@ most likely to mess up their piece.
 > 
 > parseRow :: Parser Row
 > parseRow = parsePart `sepBy` reservedOp ","
-> parseRows :: Parser Pattern -- don't need this any more 
-> parseRows = parseRow `sepBy` reservedOp ";"
-> -- because we have this we can now implement width and the pullthrough errors. 
->
->
-> --Need to add a special symbol that is recognized as the change between rows, such as ; 
-> -- SemiSep1 might be useful.
 >
 > parseStitch:: Parser Stitch
 > parseStitch =
@@ -119,13 +109,11 @@ most likely to mess up their piece.
 >   <|> Flip <$ reservedOp "fl"
 >   <|> PullThrough <$ reservedOp "pt"
 
-
-> -- does this pull from our lexer?
-
 > reserved, reservedOp :: String -> Parser ()
 > reserved   = getReserved lexer
 > reservedOp = getReservedOp lexer
-> 
+
+All of the below functions are meant to check individual parts that can cause errors and fail the program if it finds them.
 
 > checkTreble :: Part -> Part -> Bool 
 > checkTreble (S (TrebleCrochet _)) (S (SlipStitch _))  = True  
@@ -139,7 +127,7 @@ most likely to mess up their piece.
 > checkFlip _ = False
 > 
 > checkSpace :: Part -> Bool
-> checkSpace (S (Space x)) = if x <= 5 then True else False
+> checkSpace (S (Space x)) = x <= 5
 > checkSpace _ = False
 >
 > parse2 :: Parser Part
@@ -149,12 +137,9 @@ most likely to mess up their piece.
 > checkFC FlipChain = True 
 > checkFC _ = False 
 >
-> lastRow :: Pattern -> Row
-> lastRow pattern = lastRow pattern
->  
 > checkPullThrough :: Part -> Pattern -> Bool 
 > checkPullThrough PullThrough [] = False
-> checkPullThrough PullThrough pattern = if last(last pattern) == PullThrough then False  else True
+> checkPullThrough PullThrough pattern = last(last pattern) /= PullThrough
 > checkPullThrough _ _ = True 
 > 
 > checkFlipChain :: Part -> [Part] -> Bool
@@ -162,27 +147,28 @@ most likely to mess up their piece.
 > checkFlipChain _ _ = True
 > 
 > checkBegSpace :: Part -> [Part] -> Bool
-> checkBegSpace (S(Space y ))(x: parts) = (S (Space y)) == x
+> checkBegSpace (S(Space y ))(x: parts) = S (Space y) == x
 > checkBegSpace _ _ = False 
 >
 > checkInc :: Part -> Bool
-> checkInc (Increase y (SingleCrochet _)) = if y>2 then True else False
-> checkInc (Increase y (DoubleCrochet _)) = if y>2 then True else False
-> checkInc (Increase y (TrebleCrochet _)) = if y>2 then True else False
-> checkInc (Increase y (SlipStitch    _)) = if y>2 then True else False
+> checkInc (Increase y (SingleCrochet _)) = y>2
+> checkInc (Increase y (TrebleCrochet _)) = y>2
+> checkInc (Increase y (SlipStitch    _)) = y>2
 > checkInc  _ = False
 >
 > checkDec :: Part -> Bool
-> checkDec (Decrease y (SingleCrochet _)) = if y>2 then True else False
-> checkDec (Decrease y (DoubleCrochet _)) = if y>2 then True else False
-> checkDec (Decrease y (TrebleCrochet _)) = if y>2 then True else False
-> checkDec (Decrease y (SlipStitch    _)) = if y>2 then True else False
+> checkDec (Decrease y (SingleCrochet _)) = y>2
+> checkDec (Decrease y (DoubleCrochet _)) = y>2
+> checkDec (Decrease y (TrebleCrochet _)) = y>2
+> checkDec (Decrease y (SlipStitch    _)) = y>2
 > checkDec  _ = False
 > 
 > checkChain :: Part -> Bool 
 > checkChain (S(Chain _)) = True
 > checkChain _ =  False
-> 
+
+All of the below functions are supposed to update or check the width for width related errors. 
+ 
 > setUpOWid :: Part -> Integer
 > setUpOWid (S(Chain x)) = x
 > setUpOWid _ = 0
@@ -193,8 +179,8 @@ most likely to mess up their piece.
 > setUpNWid (S(TrebleCrochet x)) y = x + y 
 > setUpNWid (S(SlipStitch x)) y    = x + y 
 > setUpNWid (S(Space x)) y         = x + y 
-> setUpNWid (Increase x (_)) y     = x + y 
-> setUpNWid (Decrease x (_)) y     = y - x
+> setUpNWid (Increase x _) y     = x + y 
+> setUpNWid (Decrease x _) y     = y - x
 > setUpNWid _ y = y
 > 
 > checkWidth :: Integer -> Integer -> Bool
@@ -213,38 +199,34 @@ most likely to mess up their piece.
 > checkStitch _  = False
 >
 
->
+An ADT that is supposed to keep track of where and what the machine is doing at any given point and allows us to throw errors as needed.
+
 > data Progress where
->   Working :: Integer -> Integer -> Pattern -> Progress -- Add Integer -> Integer in the middle, Current Width -> Old Width. 
+>   Working :: Integer -> Integer -> Pattern -> Progress 
 >   Done :: Bool -> Progress
 >   Error :: PatternError -> Progress
-> -- add the needed items for the environment to the Progress data type.
-> -- Error ProgFail just accounts for the fact that the pattern may be vaild but something went wrong that isn't the users fault.
->
+
 
 >
 > step :: Progress -> Progress
 > step (Working _ _[]) = Done True
 > step (Done bool) = Done bool
 > step (Working o n (r:pattern))  -- o is old width, n is new width
->   | checkBegSpace (S(Space 1)) (r) = Error BegSpace  -- works
->   | checkFlipChain FlipChain r = Error NoTurnChain -- works  CAN'T CHECK FLIPCHAIN AND PULL THROUGH AT SAME TIME
->   | checkPullThrough PullThrough pattern = Error NoPull  -- works 
+>   | checkBegSpace (S(Space 1)) r = Error BegSpace
+>   | checkFlipChain FlipChain r = Error NoTurnChain
+>   | checkPullThrough PullThrough pattern = Error NoPull 
 >   | checkWidth o n = Error WidthSize
 > step (Working o n ((x:p):pattern) ) 
->   | checkSpace x = Error SpaceError                  -- works 
->   | checkInc x  = Error IncError                     -- works 
->   | checkDec x = Error DecError                      -- works 
+>   | checkSpace x = Error SpaceError                  
+>   | checkInc x  = Error IncError                     
+>   | checkDec x = Error DecError                      
 >   | checkChain x = Working (setUpOWid x) (setUpOWid x) pattern
 >   | checkStitch x = Working o (setUpNWid x o) pattern
 >   | checkWidth o n = Error WidthSize
 > step (Working o n ((x:y:p):pattern))
 >   | checkTreble x y = Error TrebleError              -- works
->   | checkStitch x  && checkStitch y  = Working o (((setUpNWid x o) +(setUpNWid y o) )) pattern 
+>   | checkStitch x  && checkStitch y  = Working o (setUpNWid x o + setUpNWid y o) pattern 
 >   | checkWidth o n = Error WidthSize
-
-> -- turn the row cases into a guard case instead. Fixes infinite loop.
-> -- Need to change the S Space of CheckBegSpace because it doesn't catch all cases currently.
 > step (Error e) = Error e
 > step _ = Done True
 >  
@@ -255,9 +237,9 @@ most likely to mess up their piece.
 > steps _ = Error ProgFail
 
 > execute :: Integer-> Integer -> Pattern -> Progress
-> execute o n (pattern) = 
+> execute o n pattern = 
 >    case step(Working o n pattern) of 
->        Working o n [] -> Done True
+>        Working _ _ [] -> Done True
 >        Working o' n' pattern' -> execute o' n' pattern'
 >        Done bool -> Done bool 
 >        Error e -> Error e
@@ -266,6 +248,6 @@ most likely to mess up their piece.
 > run o n pattern = 
 >   case execute o n pattern of 
 >     Done True -> showBool True 
->     Done False -> showBool False -- we probably don't need it 
->     Error e -> showPatErr e   -- the cause of our problems
->     Working o n _ -> showBool False
+>     Done False -> showBool False
+>     Error e -> showPatErr e  
+>     Working {}-> showBool False
